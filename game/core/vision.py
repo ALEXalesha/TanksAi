@@ -77,10 +77,11 @@ def tank_visible(arena, ex, ey, tx, ty, radius):
     return False
 
 
-def cast_ray(arena, x, y, ca, sa, max_dist):
+def cast_ray(arena, x, y, ca, sa, max_dist, through_bush=False):
     """Луч из (x, y) с направлением (ca, sa): (дальность до входа в первую непрозрачную
     клетку, что там; 0 - ничего ближе max_dist). Клетка смотрящего не считается. Тот же
-    обход клеток, что в line_clear. Чистый Python: на 16 лучах быстрее numpy."""
+    обход клеток, что в line_clear. Чистый Python: на 16 лучах быстрее numpy.
+    through_bush - сквозь кусты (так летит снаряд)."""
     c, r = int(x), int(y)
     W, H, tiles = arena.W, arena.H, arena.tiles
     inf = math.inf
@@ -114,10 +115,11 @@ def cast_ray(arena, x, y, ca, sa, max_dist):
         if not (0 <= c < W and 0 <= r < H):
             return t, 1
         k = tiles[r * W + c]
-        if k:
+        if k and not (through_bush and k == BUSH):
             return t, k
 
 
 def cast_rays(arena, x, y, dirs, max_dist):
     """Несколько лучей: dirs - [(cos, sin)]. Список (дальность, что там)."""
     return [cast_ray(arena, x, y, ca, sa, max_dist) for ca, sa in dirs]
+

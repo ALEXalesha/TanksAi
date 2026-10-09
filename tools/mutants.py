@@ -44,7 +44,8 @@ MUTANTS += [
      "if not (0 <= c < W and 0 <= r < arena.H) or tiles[r * W + c] in (1, 2):", TM),
     ("vision: в кусте видно издали", VI, "if arena.tile(int(px), int(py)) == BUSH and", "if False and", TM),
     ("vision: бока не смотрятся", VI, "        if point_visible(arena, ex, ey, sx, sy):\n            return True\n", "", TM),
-    ("vision: луч сквозь куст", VI, "        k = tiles[r * W + c]\n        if k:", "        k = tiles[r * W + c]\n        if k in (1, 2):", TM),
+    ("vision: луч сквозь куст", VI, "if k and not (through_bush and k == BUSH):", "if k and k != BUSH:", TM),
+    ("vision: снаряд упирается в куст", VI, "if k and not (through_bush and k == BUSH):", "if k:", TM),
 ]
 MG = "game/core/mapgen.py"
 MUTANTS += [
