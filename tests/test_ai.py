@@ -80,7 +80,7 @@ def test_mapinfo_cover_and_path():
     info = map_info(a)
     here = info.cell(2.5, 2.5)
     goal = info.cell(21.5, 13.5)
-    assert info.dist[here, goal] < 1 << 30
+    assert info.dist(here, goal) < 1 << 30
     k, steps = here, 0
     while k != goal and steps < 200:                 # по next_step доходим до цели
         k = info.next_step(k, goal)
@@ -88,7 +88,7 @@ def test_mapinfo_cover_and_path():
     assert k == goal
     threat = info.cell(12.5, 7.5)
     cover = info.cover_from(here, threat)
-    assert cover is not None and not info.see[threat, cover]
+    assert cover is not None and not info.sees(threat, cover)
 
 
 def test_net_shapes_actions_and_files(tmp_path):

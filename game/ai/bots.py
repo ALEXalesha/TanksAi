@@ -136,7 +136,7 @@ class Camper(Bot):
         if targets and obs.reload > 0:
             threat = info.nearest_passable(info.cell(targets[0].x, targets[0].y))
             cover = info.cover_from(here, threat, limit=4)
-            if cover is not None and info.see[here, threat]:
+            if cover is not None and info.sees(here, threat):
                 goal = cover
         if here != goal:
             nx, ny = info.centre(info.next_step(here, goal))

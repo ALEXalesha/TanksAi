@@ -1,6 +1,6 @@
 """Что ИИ знает о карте заранее - то же, что видит игрок на экране: где стены и кусты.
 
-Для каждой пары клеток считается один раз на карту:
+Для пар клеток (строками, по требованию):
 - dist[a, b] - длина пути танка (прямо 2, по диагонали 3; кирпич - преграда);
 - see[a, b] - видна ли середина клетки b из середины клетки a (стены, кирпичи, кусты).
 
@@ -16,25 +16,17 @@ _CACHE = {}
 
 
 class MapInfo:
+    """Строки матриц dist и see считаются по требованию и запоминаются: окно не ждёт
+    полного пересчёта карты, а обучение всё равно быстро набирает нужные строки."""
+
     def __init__(self, arena):
+        self.arena = arena.copy()
         self.W, self.H = arena.W, arena.H
         n = self.W * self.H
         self.n = n
         self.passable = np.array([not arena.solid(k % self.W, k // self.W) for k in range(n)])
-        dist = np.full((n, n), INF, dtype=np.int32)
-        for k in range(n):
-            if self.passable[k]:
-                dist[k] = mapgen.distances(arena, (k % self.W, k // self.W))
-        self.dist = dist
-        see = np.zeros((n, n), dtype=bool)
-        cells = [k for k in range(n) if self.passable[k]]
-        for i, a in enumerate(cells):
-            ax, ay = a % self.W + 0.5, a // self.W + 0.5
-            see[a, a] = True
-            for b in cells[i + 1:]:
-                v = vision.line_clear(arena, ax, ay, b % self.W + 0.5, b // self.W + 0.5)
-                see[a, b] = see[b, a] = v
-        self.see = see
+        self._dist = {}
+        self._see = {}
         self.neigh = []
         for k in range(n):
             if not self.passable[k]:
@@ -42,6 +34,37 @@ class MapInfo:
                 continue
             c, r = k % self.W, k // self.W
             self.neigh.append(tuple(nr * self.W + nc for nc, nr, _ in mapgen.neighbours(arena, c, r)))
+
+    def dist_row(self, k):
+        """Длины путей от клетки k до всех клеток (путь симметричен: и до k от всех)."""
+        row = self._dist.get(k)
+        if row is None:
+            if self.passable[k]:
+                row = np.array(mapgen.distances(self.arena, (k % self.W, k // self.W)), dtype=np.int64)
+            else:
+                row = np.full(self.n, INF, dtype=np.int64)
+            self._dist[k] = row
+        return row
+
+    def see_row(self, k):
+        """Какие клетки видны из середины клетки k (видимость симметрична)."""
+        row = self._see.get(k)
+        if row is None:
+            ax, ay = k % self.W + 0.5, k // self.W + 0.5
+            a = self.arena
+            row = np.array([self.passable[j] and vision.line_clear(a, ax, ay, j % self.W + 0.5, j // self.W + 0.5)
+                            for j in range(self.n)])
+            row[k] = True
+            self._see[k] = row
+        return row
+
+    def dist(self, a, b):
+        row = self._dist.get(a)
+        return int(row[b]) if row is not None else int(self.dist_row(b)[a])
+
+    def sees(self, a, b):
+        row = self._see.get(a)
+        return bool(row[b]) if row is not None else bool(self.see_row(b)[a])
 
     def cell(self, x, y):
         c = min(max(int(x), 0), self.W - 1)
@@ -53,9 +76,10 @@ class MapInfo:
 
     def next_step(self, here, goal):
         """Соседняя клетка на кратчайшем пути от here к goal (или here, если пути нет)."""
-        best, bd = here, self.dist[here, goal]
+        row = self.dist_row(goal)
+        best, bd = here, row[here]
         for nb in self.neigh[here]:
-            d = self.dist[nb, goal]
+            d = row[nb]
             if d < bd:
                 best, bd = nb, d
         return best
@@ -74,8 +98,8 @@ class MapInfo:
     def cover_from(self, here, threat, limit=12):
         """Ближайшая по пути клетка, которой не видно из клетки threat. None - если нет
         в пределах limit клеток пути."""
-        d = self.dist[here]
-        hidden = (~self.see[threat]) & self.passable & (d <= limit * 2)
+        d = self.dist_row(here)
+        hidden = (~self.see_row(threat)) & self.passable & (d <= limit * 2)
         if not hidden.any():
             return None
         idx = np.flatnonzero(hidden)
@@ -87,8 +111,8 @@ def key(arena):
 
 
 def map_info(arena):
-    """MapInfo по карте с кешем. Кирпичи считаются по исходной карте: разрушенный кирпич
-    путь не открывает (ИИ так проще и не хитрее игрока)."""
+    """MapInfo по карте с кешем. Ключ - клетки карты, так что после разрушенного кирпича
+    пути считаются заново (разрушение видно всем на экране)."""
     k = key(arena)
     info = _CACHE.get(k)
     if info is None:

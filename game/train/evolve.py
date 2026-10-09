@@ -223,6 +223,14 @@ class Evolution:
         self.rng.bit_generator.state = meta["rng"]
 
 
+def warm(_):
+    """Работник заранее строит карты пула (генератор) - пути и видимость считаются по ходу."""
+    import os
+    for m in MAP_POOL:
+        arena_by_name(m)
+    return os.getpid()
+
+
 def eval_job(job):
     """Проверка среднего: params против бота на фиксированных боях. (побед, ничьих, боёв)."""
     params, hidden, opp, idx = job

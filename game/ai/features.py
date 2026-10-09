@@ -192,7 +192,7 @@ def features(obs, thoughts=None):
     step = info.next_step(here, goal)
     sx_, sy_ = info.centre(step)
     pa = geom.diff(geom.angle_of(sx_ - me.x, sy_ - me.y), hull)
-    plen = info.dist[here, goal]
+    plen = info.dist(here, goal)
     f[k:k + 15] = (known, visible, age, fx / RANGE, fy / RANGE, min(dist, 2 * RANGE) / RANGE,
                    geom.SIN[err % geom.ANG], geom.COS[err % geom.ANG], geom.SIN[lead_err % geom.ANG],
                    float(los), direct, rico, geom.SIN[pa % geom.ANG], geom.COS[pa % geom.ANG],
@@ -234,13 +234,13 @@ def features(obs, thoughts=None):
     # --- укрытие ---
     threat = info.nearest_passable(info.cell(tx, ty))
     cover = info.cover_from(here, threat) if known else None
-    in_cover = not info.see[here, threat]
+    in_cover = not info.sees(here, threat)
     if cover is not None:
         cs = info.next_step(here, cover)
         cx_, cy_ = info.centre(cs)
         ca = geom.diff(geom.angle_of(cx_ - me.x, cy_ - me.y), hull)
         f[k:k + 5] = (float(in_cover), 1.0, geom.SIN[ca % geom.ANG], geom.COS[ca % geom.ANG],
-                      min(info.dist[here, cover], 40) / 40.0)
+                      min(info.dist(here, cover), 40) / 40.0)
     else:
         f[k] = float(in_cover)
     k += 5
