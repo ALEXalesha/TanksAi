@@ -27,6 +27,7 @@ SHELL_LIFE = 100       # шагов
 RELOAD = 45            # шагов между выстрелами (1.5 с)
 LIVES = 3
 TIME_LIMIT = 90 * TICK_HZ
+HIT2 = (TANK_R + SHELL_R) ** 2
 
 
 @dataclass
@@ -59,7 +60,7 @@ class Options:
         return {"bounce": self.bounce, "bricks": self.bricks, "time_limit": self.time_limit}
 
 
-@dataclass
+@dataclass(slots=True)
 class Tank:
     id: int
     team: int
@@ -83,7 +84,7 @@ class Tank:
         return (self.hull + self.turret) % geom.ANG
 
 
-@dataclass
+@dataclass(slots=True)
 class Shell:
     id: int
     owner: int
@@ -135,18 +136,29 @@ class World:
         if self.over:
             return []
         self.events = []
-        acts = [(actions.get(t.id) or IDLE).clamp() if t.alive else IDLE for t in self.tanks]
-        for t, a in zip(self.tanks, acts):
-            if t.alive:
-                t.hull = (t.hull + a.turn * HULL_TURN) % geom.ANG
-                t.turret = (t.turret + a.turret) % geom.ANG
-        for t, a in zip(self.tanks, acts):
-            if t.alive:
-                self._drive(t, a.move)
+        tanks = self.tanks
+        acts = []
+        for t in tanks:
+            a = actions.get(t.id) if t.lives > 0 else None
+            if a is None:
+                acts.append((0, 0, 0, False))
+                continue
+            acts.append((max(-1, min(1, int(a.move))), max(-1, min(1, int(a.turn))),
+                         max(-TURRET_TURN, min(TURRET_TURN, int(a.turret))), bool(a.fire)))
+        ang = geom.ANG
+        for t, (_, turn, tur, _) in zip(tanks, acts):
+            if t.lives > 0:
+                if turn:
+                    t.hull = (t.hull + turn * HULL_TURN) % ang
+                if tur:
+                    t.turret = (t.turret + tur) % ang
+        for t, (move, _, _, _) in zip(tanks, acts):
+            if t.lives > 0 and move:
+                self._drive(t, move)
             else:
                 t.speed = 0.0
-        for t, a in zip(self.tanks, acts):
-            if t.alive and a.fire and t.reload == 0:
+        for t, (_, _, _, fire) in zip(tanks, acts):
+            if fire and t.lives > 0 and t.reload == 0:
                 self._fire(t)
         for s in list(self.shells):
             self._fly(s)
@@ -181,17 +193,24 @@ class World:
             t.speed = v * abs(geom.SIN[t.hull])
 
     def _free(self, t, x, y):
+        """Танк с серединой (x, y) не задевает стен и других танков. Танк всегда внутри
+        стальной рамки карты, поэтому клетки вокруг него - в пределах карты."""
         a = self.arena
+        tiles, W = a.tiles, a.W
         r = TANK_R
+        r2 = r * r
         for row in range(int(y - r), int(y + r) + 1):
+            base = row * W
             for col in range(int(x - r), int(x + r) + 1):
-                if a.solid(col, row):
-                    nx = min(max(x, col), col + 1)
-                    ny = min(max(y, row), row + 1)
-                    if (x - nx) ** 2 + (y - ny) ** 2 < r * r:
+                k = tiles[base + col]
+                if k == STEEL or k == BRICK:
+                    nx = x if col <= x <= col + 1 else (col if x < col else col + 1)
+                    ny = y if row <= y <= row + 1 else (row if y < row else row + 1)
+                    if (x - nx) * (x - nx) + (y - ny) * (y - ny) < r2:
                         return False
+        d2 = 4 * r2
         for o in self.tanks:
-            if o is not t and o.alive and (o.x - x) ** 2 + (o.y - y) ** 2 < (2 * r) ** 2:
+            if o is not t and o.lives > 0 and (o.x - x) * (o.x - x) + (o.y - y) * (o.y - y) < d2:
                 return False
         return True
 
@@ -208,12 +227,13 @@ class World:
 
     def _fly(self, s):
         a = self.arena
+        tiles, W = a.tiles, a.W
         sx, sy = s.vx / SUBSTEPS, s.vy / SUBSTEPS
         for _ in range(SUBSTEPS):
             ox, oy = s.x, s.y
             nx, ny = ox + sx, oy + sy
             c, r = int(nx), int(ny)
-            tile = a.tile(c, r)
+            tile = tiles[r * W + c]           # снаряд внутри стальной рамки карты
             if tile == BRICK and self.options.bricks:
                 a.tiles[r * a.W + c] = FLOOR
                 self.events.append(("brick", c, r))
@@ -238,9 +258,9 @@ class World:
                 continue                            # этот подшаг стоит на месте
             s.x, s.y = nx, ny
             for t in self.tanks:
-                if not t.alive or (t.id == s.owner and not s.bounced):
+                if t.lives <= 0 or (t.id == s.owner and not s.bounced):
                     continue
-                if (t.x - nx) ** 2 + (t.y - ny) ** 2 < (TANK_R + SHELL_R) ** 2:
+                if (t.x - nx) * (t.x - nx) + (t.y - ny) * (t.y - ny) < HIT2:
                     if t.team != s.team or t.id == s.owner:
                         t.lives -= 1
                         if t.team != s.team:
