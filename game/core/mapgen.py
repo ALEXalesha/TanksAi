@@ -66,7 +66,7 @@ def spawn_cell(spawn):
 
 
 def check_fair(arena):
-    """(честно ли, отчёт {проверка: значение}). Отчёт - для тестов и README."""
+    """(честно ли, отчёт {проверка: значение}); rep["failed"] - какие проверки не прошли."""
     rep = {}
     w, h = arena.W, arena.H
     rep["symmetric"] = all(arena.tiles[r * w + c] == arena.tiles[(h - 1 - r) * w + (w - 1 - c)]
@@ -97,10 +97,18 @@ def check_fair(arena):
     rep["cover"] = tuple(tuple(x) for x in half)
     rep["bases_hidden"] = all(not vision.line_clear(arena, a[0] + 0.5, a[1] + 0.5, b[0] + 0.5, b[1] + 0.5)
                               for a in sp0 for b in sp1)
-    ok = (rep["symmetric"] and rep["spawns_symmetric"] and rep["spawns_free"] and rep["connected"]
-          and rep["to_centre"][0] == rep["to_centre"][1] < inf and rep["between_bases"] >= 2 * MIN_PATH
-          and rep["cover"][0] == rep["cover"][1] and rep["bases_hidden"])
-    return ok, rep
+    passed = {
+        "symmetric": rep["symmetric"],
+        "spawns_symmetric": rep["spawns_symmetric"],
+        "spawns_free": rep["spawns_free"],
+        "connected": rep["connected"],
+        "to_centre": rep["to_centre"][0] == rep["to_centre"][1] < inf,
+        "between_bases": rep["between_bases"] >= 2 * MIN_PATH,
+        "cover": rep["cover"][0] == rep["cover"][1],
+        "bases_hidden": rep["bases_hidden"],
+    }
+    rep["failed"] = [k for k, v in passed.items() if not v]
+    return not rep["failed"], rep
 
 
 def _blob(rng):

@@ -44,20 +44,19 @@ def fair_base():
     return builtin("arena")
 
 
-def test_unfair_asymmetric_tile():
-    a = fair_base()
-    k = 3 * a.W + 10
-    assert a.tiles[k] == FLOOR
-    a.tiles[k] = STEEL
-    ok, rep = mapgen.check_fair(a)
-    assert not ok and not rep["symmetric"]
+def failed(arena):
+    ok, rep = mapgen.check_fair(arena)
+    assert ok == (not rep["failed"])
+    return set(rep["failed"])
 
 
-def test_unfair_cover_counts_even_if_symmetric_flag_ignored():
+def test_unfair_extra_wall_breaks_symmetry_and_cover():
     a = fair_base()
-    a.tiles[3 * a.W + 10] = BUSH                     # куст только у команды 0
-    _, rep = mapgen.check_fair(a)
-    assert rep["cover"][0] != rep["cover"][1]
+    assert a.tile(10, 3) == FLOOR and a.tile(7, 2) == STEEL
+    a.tiles[3 * a.W + 10] = STEEL
+    assert failed(a) == {"symmetric", "cover"}
+    a.tiles[2 * a.W + 7] = FLOOR                      # стена переехала: укрытий поровну, симметрии нет
+    assert failed(a) == {"symmetric"}
 
 
 def test_unfair_pocket():
@@ -66,34 +65,22 @@ def test_unfair_pocket():
     for c, r in ((9, 2), (10, 2), (11, 2), (9, 3), (11, 3), (9, 4), (10, 4), (11, 4)):
         a.tiles[r * a.W + c] = STEEL
         a.tiles[(a.H - 1 - r) * a.W + (a.W - 1 - c)] = STEEL
-    ok, rep = mapgen.check_fair(a)
-    assert rep["symmetric"] and not rep["connected"] and not ok
+    assert failed(a) == {"connected"}
 
 
-def test_unfair_visible_bases():
+def test_unfair_close_visible_bases():
     rows = ["##########",
             "#A......b#",
             "#a......B#",
             "##########"]
-    ok, rep = mapgen.check_fair(Arena.from_rows(rows))
-    assert not rep["bases_hidden"] and not ok
+    assert failed(Arena.from_rows(rows)) == {"between_bases", "bases_hidden"}
 
 
 def test_unfair_spawn_moved():
     a = fair_base()
     x, y, h = a.spawns[1][0]
     a.spawns[1][0] = (x - 1, y, h)
-    ok, rep = mapgen.check_fair(a)
-    assert not rep["spawns_symmetric"] and not ok
-
-
-def test_unfair_bases_too_close():
-    rows = ["########",
-            "#A....b#",
-            "#a....B#",
-            "########"]
-    _, rep = mapgen.check_fair(Arena.from_rows(rows))
-    assert rep["between_bases"] < 2 * mapgen.MIN_PATH
+    assert failed(a) == {"spawns_symmetric", "to_centre"}
 
 
 def test_unequal_distance_to_centre():
@@ -103,8 +90,29 @@ def test_unequal_distance_to_centre():
             "#....###.#",
             "#....#.#B#",
             "##########"]
-    ok, rep = mapgen.check_fair(Arena.from_rows([r for r in rows]))
-    assert not ok
+    assert {"to_centre", "connected"} <= failed(Arena.from_rows(rows))
+
+
+def test_generator_seals_pockets():
+    import random
+    rng = random.Random(0)
+    for _ in range(60):
+        a = mapgen._try(rng, "probe")
+        assert mapgen.check_fair(a)[1]["connected"]
+
+
+def test_path_does_not_cut_corners():
+    a = Arena.from_rows(["#####",
+                         "#A#.#",
+                         "##.B#",
+                         "#####"])
+    d = mapgen.distances(a, (1, 1))
+    assert d[2 * a.W + 2] >= 1 << 30                  # по диагонали между двумя стенами не проехать
+    a = Arena.from_rows(["#####",
+                         "#A..#",
+                         "#..B#",
+                         "#####"])
+    assert mapgen.distances(a, (1, 1))[2 * a.W + 2] == 3
 
 
 # --- видимость ---

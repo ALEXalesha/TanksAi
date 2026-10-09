@@ -89,6 +89,15 @@ def test_wall_stops_tank_and_it_slides_along():
     assert t.y < y0 - 0.2 and not touches_wall(w, t)
 
 
+def test_slides_along_top_wall():
+    w = world()
+    t = w.tanks[0]
+    put(t, 3.5, 1.5, geom.ANG * 3 // 4 + geom.ANG // 12)  # вверх и чуть вправо: упирается в верх
+    x0 = t.x
+    run(w, {0: Action(move=1)}, 20)
+    assert t.x > x0 + 0.2 and not touches_wall(w, t)
+
+
 def test_tanks_do_not_overlap():
     w = world()
     a, b = w.tanks
@@ -143,6 +152,31 @@ def test_shell_bounces_once_then_dies():
     assert s.bounced and s.vy < 0
     run(w, {}, 20)
     assert s not in w.shells and w.misses[0] == 1
+
+
+def test_only_one_bounce():
+    w = world()
+    put(w.tanks[0], 2.5, 2.5, geom.ANG // 8)          # 45 градусов вниз-вправо
+    put(w.tanks[1], 10.5, 3.5)
+    seen = []
+    w.step({0: Action(fire=True)})
+    for _ in range(40):
+        seen += w.step({})
+    assert sum(1 for e in seen if e[0] == "bounce") == 1
+    assert ("gone", 0, "wall") in seen
+
+
+def test_hash_sees_shells():
+    w1, w2 = world(), world()
+    for w in (w1, w2):
+        put(w.tanks[0], 2.5, 1.5, geom.ANG // 4)
+        w.step({0: Action(fire=True)})
+    assert w1.state_hash() == w2.state_hash()
+    w2.shells[0].bounces = 0
+    assert w1.state_hash() != w2.state_hash()
+    w2.shells[0].bounces = 1
+    w2.shells[0].age += 1
+    assert w1.state_hash() != w2.state_hash()
 
 
 def test_no_bounce_option():
