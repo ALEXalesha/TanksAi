@@ -266,7 +266,7 @@ class World:
                         if t.team != s.team:
                             s.hit = True
                             self.tanks[s.owner].hits += 1
-                        self.events.append(("hit", s.owner, t.id))
+                        self.events.append(("hit", s.owner, t.id, s.bounced))
                         if not t.alive:
                             self.events.append(("destroyed", t.id))
                     self._remove(s, "tank")

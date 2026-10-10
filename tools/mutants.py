@@ -61,3 +61,26 @@ MUTANTS += [
     ("mapgen: диагональ сквозь угол", MG,
      "if dc and dr and (arena.solid(c + dc, r) or arena.solid(c, r + dr)):", "if False:", TM),
 ]
+OB = "game/ai/observe.py"
+TH = "tests/test_honesty.py"
+AG = "game/ai/agents.py"
+MUTANTS += [
+    ("honesty: видит сквозь стены", OB, "if vision.tank_visible(arena, me.x, me.y, t.x, t.y, TANK_R):", "if True:", TH),
+    ("honesty: снаряды сквозь стены", OB, "if vision.point_visible(arena, me.x, me.y, s.x, s.y):", "if True:", TH),
+    ("honesty: память не забывает погибших", OB, "                del self.seen[k]                     # уничтожен - это видно всем\n",
+     "                pass\n", TH),
+    ("honesty: память всегда «вижу»", OB, "self.seen[k] = Belief(b.id, b.x, b.y, b.vx, b.vy, b.tick, False)", "pass", TH),
+    ("honesty: без задержки реакции", AG, "            old = self.queue[0]\n", "            old = now\n", TH),
+    ("honesty: задержка на шаг меньше", AG, "self.queue = deque(maxlen=delay + 1)", "self.queue = deque(maxlen=delay)", TH),
+]
+SE = "game/ui/session.py"
+TU = "tests/test_ui.py"
+AV = "game/ui/arena_view.py"
+MUTANTS += [
+    ("ui: туман не прячет врага", SE, "        if not self.fog or tank.team == self.human_team:\n            return True\n",
+     "        return True\n", TU),
+    ("ui: мысли не выводят из статистики", SE, "        if on and self.mode in (\"duel\", \"team\"):\n            self.peeked = True\n", "", TU),
+    ("ui: мышь не целит", AV, "                    act = aim_action(tank, want, act.move, act.turn)\n", "", TU),
+    ("ui: второй игрок без стрелок", AV, "for player, table in ((0, P1_KEYS), (1, P2_KEYS)):", "for player, table in ((0, P1_KEYS), (1, {})):", TU),
+    ("ui: клавиши залипают", AV, "        self.keys.discard(e.key())\n", "", TU),
+]
