@@ -1,0 +1,628 @@
+{
+ "games_per_check": 200,
+ "checks": [
+  {
+   "subject": "strong",
+   "villain": "rusher",
+   "seed": 301,
+   "games": 200,
+   "wins": 179,
+   "draws": 0,
+   "losses": 21,
+   "win_rate": 0.895,
+   "score": 0.895,
+   "hits_per_game": 2.805,
+   "taken_per_game": 1.0,
+   "misses_per_game": 6.845,
+   "accuracy": 0.2907,
+   "avg_seconds": 13.43,
+   "sample": [
+    [
+     "W",
+     3,
+     0,
+     9,
+     1,
+     364
+    ],
+    [
+     "W",
+     3,
+     0,
+     7,
+     1,
+     280
+    ],
+    [
+     "W",
+     3,
+     0,
+     9,
+     1,
+     370
+    ],
+    [
+     "W",
+     3,
+     1,
+     8,
+     3,
+     332
+    ],
+    [
+     "W",
+     2,
+     0,
+     8,
+     4,
+     354
+    ],
+    [
+     "W",
+     3,
+     0,
+     8,
+     2,
+     325
+    ]
+   ]
+  },
+  {
+   "subject": "strong",
+   "villain": "camper",
+   "seed": 302,
+   "games": 200,
+   "wins": 80,
+   "draws": 89,
+   "losses": 31,
+   "win_rate": 0.4,
+   "score": 0.6225,
+   "hits_per_game": 1.41,
+   "taken_per_game": 0.06,
+   "misses_per_game": 34.83,
+   "accuracy": 0.0389,
+   "avg_seconds": 62.12,
+   "sample": [
+    [
+     "W",
+     3,
+     0,
+     8,
+     0,
+     358
+    ],
+    [
+     "D",
+     2,
+     0,
+     20,
+     0,
+     2700
+    ],
+    [
+     "D",
+     0,
+     0,
+     60,
+     0,
+     2700
+    ],
+    [
+     "D",
+     0,
+     0,
+     60,
+     0,
+     2700
+    ],
+    [
+     "W",
+     3,
+     0,
+     12,
+     0,
+     542
+    ],
+    [
+     "L",
+     0,
+     0,
+     59,
+     0,
+     2700
+    ]
+   ]
+  },
+  {
+   "subject": "medium",
+   "villain": "rusher",
+   "seed": 311,
+   "games": 200,
+   "wins": 122,
+   "draws": 5,
+   "losses": 73,
+   "win_rate": 0.61,
+   "score": 0.6225,
+   "hits_per_game": 2.33,
+   "taken_per_game": 1.8,
+   "misses_per_game": 6.05,
+   "accuracy": 0.278,
+   "avg_seconds": 15.02,
+   "sample": [
+    [
+     "L",
+     2,
+     3,
+     8,
+     3,
+     341
+    ],
+    [
+     "W",
+     3,
+     2,
+     9,
+     3,
+     386
+    ],
+    [
+     "L",
+     2,
+     3,
+     8,
+     3,
+     355
+    ],
+    [
+     "L",
+     2,
+     3,
+     7,
+     3,
+     289
+    ],
+    [
+     "L",
+     2,
+     3,
+     10,
+     5,
+     417
+    ],
+    [
+     "W",
+     3,
+     2,
+     9,
+     3,
+     376
+    ]
+   ]
+  },
+  {
+   "subject": "medium",
+   "villain": "camper",
+   "seed": 312,
+   "games": 200,
+   "wins": 70,
+   "draws": 130,
+   "losses": 0,
+   "win_rate": 0.35,
+   "score": 0.675,
+   "hits_per_game": 0.98,
+   "taken_per_game": 0.0,
+   "misses_per_game": 38.405,
+   "accuracy": 0.0249,
+   "avg_seconds": 70.28,
+   "sample": [
+    [
+     "W",
+     3,
+     0,
+     18,
+     0,
+     771
+    ],
+    [
+     "W",
+     2,
+     0,
+     59,
+     0,
+     2700
+    ],
+    [
+     "D",
+     0,
+     0,
+     60,
+     0,
+     2700
+    ],
+    [
+     "D",
+     0,
+     0,
+     60,
+     0,
+     2700
+    ],
+    [
+     "D",
+     0,
+     0,
+     60,
+     0,
+     2700
+    ],
+    [
+     "W",
+     3,
+     0,
+     7,
+     0,
+     312
+    ]
+   ]
+  },
+  {
+   "subject": "novice",
+   "villain": "rusher",
+   "seed": 321,
+   "games": 200,
+   "wins": 78,
+   "draws": 11,
+   "losses": 111,
+   "win_rate": 0.39,
+   "score": 0.4175,
+   "hits_per_game": 2.03,
+   "taken_per_game": 2.295,
+   "misses_per_game": 1.745,
+   "accuracy": 0.5377,
+   "avg_seconds": 20.26,
+   "sample": [
+    [
+     "L",
+     0,
+     3,
+     0,
+     3,
+     364
+    ],
+    [
+     "W",
+     3,
+     2,
+     5,
+     4,
+     410
+    ],
+    [
+     "L",
+     1,
+     3,
+     6,
+     6,
+     449
+    ],
+    [
+     "L",
+     2,
+     3,
+     2,
+     3,
+     452
+    ],
+    [
+     "L",
+     2,
+     3,
+     3,
+     3,
+     354
+    ],
+    [
+     "L",
+     1,
+     3,
+     3,
+     3,
+     288
+    ]
+   ]
+  },
+  {
+   "subject": "novice",
+   "villain": "camper",
+   "seed": 322,
+   "games": 200,
+   "wins": 0,
+   "draws": 200,
+   "losses": 0,
+   "win_rate": 0.0,
+   "score": 0.5,
+   "hits_per_game": 0.0,
+   "taken_per_game": 0.0,
+   "misses_per_game": 0.54,
+   "accuracy": 0.0,
+   "avg_seconds": 90.0,
+   "sample": [
+    [
+     "D",
+     0,
+     0,
+     0,
+     0,
+     2700
+    ],
+    [
+     "D",
+     0,
+     0,
+     4,
+     0,
+     2700
+    ],
+    [
+     "D",
+     0,
+     0,
+     0,
+     0,
+     2700
+    ],
+    [
+     "D",
+     0,
+     0,
+     0,
+     0,
+     2700
+    ],
+    [
+     "D",
+     0,
+     0,
+     0,
+     0,
+     2700
+    ],
+    [
+     "D",
+     0,
+     0,
+     0,
+     0,
+     2700
+    ]
+   ]
+  },
+  {
+   "subject": "strong",
+   "villain": "medium",
+   "seed": 331,
+   "games": 200,
+   "wins": 18,
+   "draws": 57,
+   "losses": 125,
+   "win_rate": 0.09,
+   "score": 0.2325,
+   "hits_per_game": 0.45,
+   "taken_per_game": 1.215,
+   "misses_per_game": 37.635,
+   "accuracy": 0.0118,
+   "avg_seconds": 58.12,
+   "sample": [
+    [
+     "L",
+     0,
+     3,
+     31,
+     31,
+     1396
+    ],
+    [
+     "D",
+     0,
+     0,
+     60,
+     0,
+     2700
+    ],
+    [
+     "L",
+     2,
+     3,
+     19,
+     19,
+     831
+    ],
+    [
+     "L",
+     0,
+     0,
+     59,
+     60,
+     2700
+    ],
+    [
+     "D",
+     0,
+     0,
+     60,
+     0,
+     2700
+    ],
+    [
+     "L",
+     0,
+     3,
+     12,
+     12,
+     507
+    ]
+   ]
+  },
+  {
+   "subject": "strong",
+   "villain": "novice",
+   "seed": 332,
+   "games": 200,
+   "wins": 59,
+   "draws": 62,
+   "losses": 79,
+   "win_rate": 0.295,
+   "score": 0.45,
+   "hits_per_game": 1.125,
+   "taken_per_game": 0.19,
+   "misses_per_game": 39.095,
+   "accuracy": 0.028,
+   "avg_seconds": 64.92,
+   "sample": [
+    [
+     "L",
+     2,
+     1,
+     31,
+     7,
+     1387
+    ],
+    [
+     "D",
+     0,
+     0,
+     60,
+     0,
+     2700
+    ],
+    [
+     "D",
+     0,
+     0,
+     60,
+     0,
+     2700
+    ],
+    [
+     "D",
+     0,
+     0,
+     60,
+     0,
+     2700
+    ],
+    [
+     "D",
+     0,
+     0,
+     59,
+     0,
+     2700
+    ],
+    [
+     "L",
+     1,
+     3,
+     13,
+     10,
+     591
+    ]
+   ]
+  },
+  {
+   "subject": "medium",
+   "villain": "novice",
+   "seed": 333,
+   "games": 200,
+   "wins": 108,
+   "draws": 92,
+   "losses": 0,
+   "win_rate": 0.54,
+   "score": 0.77,
+   "hits_per_game": 1.525,
+   "taken_per_game": 0.0,
+   "misses_per_game": 33.565,
+   "accuracy": 0.0435,
+   "avg_seconds": 59.66,
+   "sample": [
+    [
+     "D",
+     0,
+     0,
+     60,
+     0,
+     2700
+    ],
+    [
+     "D",
+     0,
+     0,
+     60,
+     0,
+     2700
+    ],
+    [
+     "W",
+     3,
+     0,
+     15,
+     8,
+     676
+    ],
+    [
+     "W",
+     3,
+     0,
+     26,
+     18,
+     1132
+    ],
+    [
+     "W",
+     3,
+     0,
+     7,
+     0,
+     313
+    ],
+    [
+     "D",
+     0,
+     0,
+     60,
+     0,
+     2700
+    ]
+   ]
+  }
+ ],
+ "levels": {
+  "novice": {
+   "reaction_ms": 300,
+   "generation": 10
+  },
+  "medium": {
+   "reaction_ms": 200,
+   "generation": 50
+  },
+  "strong": {
+   "reaction_ms": 100,
+   "generation": 270
+  }
+ },
+ "network": {
+  "hidden": [
+   32,
+   32
+  ],
+  "parameters": 5572
+ },
+ "training": {
+  "method": "OpenAI-ES (pairs ±noise), league of past snapshots + 2 bots",
+  "generations": 300,
+  "games": 28800,
+  "seconds": 4251,
+  "workers": 2
+ },
+ "passport_seconds": 479
+}

@@ -41,6 +41,8 @@ class Config:
     eval_every: int = 10
     eval_games: int = 20
     hidden: tuple = HIDDEN
+    miss_penalty: float = 0.0  # штраф за снаряд мимо: без него сеть учится сыпать снарядами
+    league_share: float = 0.4  # доля боёв с лигой (остальное - боты поровну)
 
 
 def make_opponent(spec):
@@ -52,7 +54,7 @@ def make_opponent(spec):
     return NetPolicy(spec[1], tuple(spec[2]))
 
 
-def play(params, hidden, opp, seed, per_team, map_name, swap, delay_b=BOT_DELAY):
+def play(params, hidden, opp, seed, per_team, map_name, swap, delay_b=BOT_DELAY, miss_penalty=0.0):
     """Один бой кандидата. Возвращает (оценка, исход 'W'/'D'/'L')."""
     world = World.new(arena_by_name(map_name), per_team, Options(time_limit=TRAIN_LIMIT))
     team_a = 1 if swap else 0
@@ -90,7 +92,9 @@ def play(params, hidden, opp, seed, per_team, map_name, swap, delay_b=BOT_DELAY)
     hits_a = sum(t.hits for t in mine)
     hits_b = sum(t.hits for t in theirs)
     survive = alive_ticks / max(1, len(mine) * world.tick / 3)
+    misses = sum(world.misses.get(t.id, 0) for t in mine)
     score = base + 0.25 * (hits_a - hits_b) / per_team + 0.3 * (aimed / seen if seen else 0.0)
+    score -= miss_penalty * misses / per_team
     if out == "L":
         score += 0.3 * survive
     return score, out
@@ -98,11 +102,11 @@ def play(params, hidden, opp, seed, per_team, map_name, swap, delay_b=BOT_DELAY)
 
 def evaluate_candidate(job):
     """Задача работника: все бои одного кандидата. job = (params, hidden, бои)."""
-    params, hidden, games = job
+    params, hidden, games, penalty = job
     total = 0.0
     outs = []
     for opp, seed, per_team, map_name, swap in games:
-        s, o = play(params, hidden, opp, seed, per_team, map_name, swap)
+        s, o = play(params, hidden, opp, seed, per_team, map_name, swap, miss_penalty=penalty)
         total += s
         outs.append(o)
     return total / len(games), "".join(outs)
@@ -152,10 +156,11 @@ class Evolution:
         out = []
         for g in range(self.cfg.games):
             roll = rng.random()
-            if self.league and roll < 0.4:
+            share = self.cfg.league_share if self.league else 0.0
+            if roll < share:
                 gen, w = self.league[rng.randrange(len(self.league))]
                 opp = ("net", w.astype(np.float32), list(self.cfg.hidden))
-            elif roll < 0.7:
+            elif roll < share + (1 - share) / 2:
                 opp = ("rusher",)
             else:
                 opp = ("camper",)
@@ -173,7 +178,7 @@ class Evolution:
         for e in eps:
             cands.append(self.mean + cfg.sigma * e)
             cands.append(self.mean - cfg.sigma * e)
-        jobs = [(c.astype(np.float32), cfg.hidden, games) for c in cands]
+        jobs = [(c.astype(np.float32), cfg.hidden, games, cfg.miss_penalty) for c in cands]
         res = pool.map(evaluate_candidate, jobs) if pool is not None else [evaluate_candidate(j) for j in jobs]
         fit = np.array([r[0] for r in res])
         ranks = centered_ranks(fit)
@@ -186,7 +191,9 @@ class Evolution:
         self.games_played += len(jobs) * len(games)
         if self.gen % cfg.league_every == 0:
             self.league.append((self.gen, self.mean.copy()))
-            self.league = self.league[-cfg.league_size:]
+            fixed = [x for x in self.league if x[0] < 0]          # эталоны из прошлого обучения
+            grown = [x for x in self.league if x[0] >= 0]
+            self.league = fixed + grown[-cfg.league_size:]
         outs = "".join(r[1] for r in res)
         dt = time.perf_counter() - t0
         self.seconds += dt
@@ -232,30 +239,44 @@ def warm(_):
 
 
 def eval_job(job):
-    """Проверка среднего: params против бота на фиксированных боях. (побед, ничьих, боёв)."""
+    """Проверка: params против соперника на фиксированных боях. (очки, боёв)."""
     params, hidden, opp, idx = job
     from game.ai.match import battle
-    w = d = 0
+    pts = 0.0
+    if isinstance(opp, str):
+        make_b, delay_b = (lambda: make_opponent((opp,))), BOT_DELAY
+    else:
+        wb = opp
+        make_b, delay_b = (lambda: NetPolicy(wb, hidden)), CANDIDATE_DELAY
     for i in idx:
         r = random.Random(f"eval:{i}")
-        res = battle(lambda: NetPolicy(params, hidden), lambda: make_opponent((opp,)), f"eval:{i}", 1,
-                     r.choice(MAP_POOL), CANDIDATE_DELAY, BOT_DELAY, swap=i % 2 == 1)
-        w += res.outcome == "W"
-        d += res.outcome == "D"
-    return w, d, len(idx)
+        res = battle(lambda: NetPolicy(params, hidden), make_b, f"eval:{i}", 1,
+                     r.choice(MAP_POOL), CANDIDATE_DELAY, delay_b, swap=i % 2 == 1)
+        pts += {"W": 1.0, "D": 0.5, "L": 0.0}[res.outcome]
+    return pts, len(idx)
 
 
-def evaluate(params, hidden, games, pool=None, workers=2):
-    """Доля очков против агрессивного и осторожного ботов на одних и тех же боях."""
+def evaluate(params, hidden, games, pool=None, workers=2, panel=()):
+    """Доля очков против агрессивного и осторожного ботов и против сетей-эталонов panel
+    [(имя, веса)] - на одних и тех же боях. 'panel' - среднее по эталонам."""
     out = {}
-    for opp in ("rusher", "camper"):
-        parts = [list(range(k, games, workers)) for k in range(workers)]
-        jobs = [(params.astype(np.float32), hidden, opp, p) for p in parts if p]
-        res = pool.map(eval_job, jobs) if pool is not None else [eval_job(j) for j in jobs]
-        w = sum(r[0] for r in res)
-        d = sum(r[1] for r in res)
-        n = sum(r[2] for r in res)
-        out[opp] = round((w + d / 2) / n, 3)
+    opps = [("rusher", "rusher"), ("camper", "camper")] + [(name, w.astype(np.float32)) for name, w in panel]
+    jobs, owners = [], []
+    for name, opp in opps:
+        for k in range(workers):
+            part = list(range(k, games, workers))
+            if part:
+                jobs.append((params.astype(np.float32), hidden, opp, part))
+                owners.append(name)
+    res = pool.map(eval_job, jobs) if pool is not None else [eval_job(j) for j in jobs]
+    sums = {}
+    for name, (pts, n) in zip(owners, res):
+        a, b = sums.get(name, (0.0, 0))
+        sums[name] = (a + pts, b + n)
+    for name, (pts, n) in sums.items():
+        out[name] = round(pts / n, 3)
+    if panel:
+        out["panel"] = round(sum(out[name] for name, _ in panel) / len(panel), 3)
     return out
 
 

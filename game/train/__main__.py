@@ -32,6 +32,9 @@ def main(argv=None):
     ap.add_argument("--resume", action="store_true")
     ap.add_argument("--imitate", type=int, metavar="БОЁВ", help="тёплый старт: подражание боту")
     ap.add_argument("--init", help="начать эволюцию с весов (например, runs/tanks/imitate.npz)")
+    ap.add_argument("--league-from", help="лига и эталоны проверки из снимков: папка:50,150,270")
+    ap.add_argument("--miss-penalty", type=float, default=0.0, help="штраф за снаряд мимо")
+    ap.add_argument("--league-share", type=float, default=0.4, help="доля боёв с лигой")
     ap.add_argument("--trial", action="store_true", help="2 поколения и прогноз времени")
     ap.add_argument("--publish", action="store_true", help="уровни из снимков в game/models")
     args = ap.parse_args(argv)
@@ -43,7 +46,8 @@ def main(argv=None):
         from game.train.publish import publish
         return publish(args.run)
 
-    cfg = Config(pairs=args.pairs, games=args.games)
+    cfg = Config(pairs=args.pairs, games=args.games, miss_penalty=args.miss_penalty,
+                 league_share=args.league_share)
     ev = Evolution(cfg, seed=args.seed)
     snap = os.path.join(args.run, "snapshot.npz")
     log = TrainLog(os.path.join(args.run, "train.log"))
@@ -51,10 +55,19 @@ def main(argv=None):
         arrays, meta = load_snapshot(args.init)
         ev.mean = arrays["mean"].astype("float64")
         log(f"веса из {args.init}: {meta}")
+    panel = []
+    if args.league_from:
+        folder, gens = args.league_from.rsplit(":", 1)
+        for g in gens.split(","):
+            arrays, _ = load_snapshot(os.path.join(folder, f"gen{int(g):04d}.npz"))
+            panel.append((f"net{int(g)}", arrays["mean"]))
+        log(f"эталоны и начальная лига: {[n for n, _ in panel]}")
     if args.resume and os.path.exists(snap):
         arrays, meta = load_snapshot(snap)
         ev.restore(arrays, meta)
         log(f"продолжаю с поколения {ev.gen}")
+    elif panel:
+        ev.league = [(-k - 1, w.astype("float64")) for k, (_, w) in enumerate(panel)]
 
     with mp.get_context("spawn").Pool(args.workers) as pool:
         t0 = time.perf_counter()
@@ -86,9 +99,9 @@ def main(argv=None):
         while ev.gen < args.gens:
             row = ev.generation(pool)
             if ev.gen % cfg.eval_every == 0:
-                score = evaluate(ev.mean, cfg.hidden, cfg.eval_games, pool, args.workers)
+                score = evaluate(ev.mean, cfg.hidden, cfg.eval_games, pool, args.workers, panel)
                 row["eval"] = score
-                total = score["rusher"] + score["camper"]
+                total = score["rusher"] + score["camper"] + 2 * score.get("panel", 0.0)
                 if ev.best is None or total >= ev.best[0]:
                     ev.best = (total, ev.gen, ev.mean.copy())
                 save_snapshot(os.path.join(args.run, f"gen{ev.gen:04d}.npz"), {"mean": ev.mean},
